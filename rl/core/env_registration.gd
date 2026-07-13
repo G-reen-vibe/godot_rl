@@ -11,3 +11,6 @@ static func register_all() -> void:
 	if not RLEnvRegistry.has("cartpole"):
 		var cartpole_scene := load("res://rl/envs/cartpole/cartpole_env.tscn") as PackedScene
 		RLEnvRegistry.register("cartpole", cartpole_scene)
+	if not RLEnvRegistry.has("pong"):
+		var pong_scene := load("res://rl/envs/pong/pong_env.tscn") as PackedScene
+		RLEnvRegistry.register("pong", pong_scene)
