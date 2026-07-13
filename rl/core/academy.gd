@@ -66,11 +66,14 @@ func _ready() -> void:
 
 
 func _spawn_envs() -> void:
-        # Pre-spawn: figure out agent count + action dim from one env
+        # Pre-spawn: figure out agent count + action dim from one env.
+        # We must add the probe to the tree so its _ready() fires and
+        # _collect_agents() runs. Without this, get_agent_count() returns 0.
         var probe := RLEnvRegistry.create(env_name)
         if probe == null:
                 push_error("RLAcademy: cannot spawn env '%s'" % env_name)
                 return
+        add_child(probe)
         _agents_per_env = probe.get_agent_count()
         _action_dim = _infer_action_dim(probe)
         probe.queue_free()
