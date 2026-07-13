@@ -13,17 +13,15 @@
 ## Action (4): [left_hip_torque, left_knee_torque, right_hip_torque, right_knee_torque]
 ##   Each in [-1, 1], scaled by TORQUE_SCALE.
 ##
-## Reward: +1 per step forward, -5 for falling.
+## Reward: +0.1 per step alive + 0.1 * forward_dx, -5 for falling.
 ## Done: torso falls below FALL_Y, or step cap reached.
-##
-## Note: is_done() and get_reward() compute from LIVE physics state.
 class_name BipedalWalkerAgent
 extends RLAgent
 
 const OBS_DIM := 8
 const ACTION_DIM := 4
 const TORQUE_SCALE := 400.0
-const FALL_Y := 100.0  # torso center y > this = fallen
+const FALL_Y := 100.0
 const GROUND_Y := 110.0
 
 @export var torso_path: NodePath = ^"../Torso"
@@ -42,7 +40,6 @@ var right_shin: RLResettableBody2D
 var left_foot: RLResettableBody2D
 var right_foot: RLResettableBody2D
 
-# Capture initial transforms for reset
 var _initial_torso: Transform2D
 var _initial_left_thigh: Transform2D
 var _initial_left_shin: Transform2D
@@ -50,6 +47,10 @@ var _initial_right_thigh: Transform2D
 var _initial_right_shin: Transform2D
 var _initial_left_foot: Transform2D
 var _initial_right_foot: Transform2D
+
+# Reward tracking: _step_dx is computed when set_action is called
+# (once per step), so get_reward() is a pure read with no side effects.
+var _step_dx: float = 0.0
 var _prev_x: float = 0.0
 
 
@@ -61,7 +62,6 @@ func _setup() -> void:
 	right_shin = get_node(right_shin_path) as RLResettableBody2D
 	left_foot = get_node(left_foot_path) as RLResettableBody2D
 	right_foot = get_node(right_foot_path) as RLResettableBody2D
-	# Capture initial transforms
 	_initial_torso = torso.transform
 	_initial_left_thigh = left_thigh.transform
 	_initial_left_shin = left_shin.transform
@@ -89,6 +89,11 @@ func get_observation() -> PackedFloat32Array:
 func set_action(action: PackedFloat32Array) -> void:
 	if action.is_empty() or action.size() < 4:
 		return
+	# Compute step dx NOW (before forces are applied), so get_reward
+	# can be a pure read. This is called once per step by the Academy.
+	_step_dx = torso.position.x - _prev_x
+	_prev_x = torso.position.x
+
 	left_thigh.apply_torque(clampf(action[0], -1.0, 1.0) * TORQUE_SCALE)
 	left_shin.apply_torque(clampf(action[1], -1.0, 1.0) * TORQUE_SCALE)
 	right_thigh.apply_torque(clampf(action[2], -1.0, 1.0) * TORQUE_SCALE)
@@ -106,9 +111,7 @@ func _is_fallen() -> bool:
 func get_reward() -> float:
 	if _is_fallen():
 		return -5.0
-	var dx: float = torso.position.x - _prev_x
-	_prev_x = torso.position.x
-	return dx * 0.1 + 0.1
+	return _step_dx * 0.1 + 0.1
 
 
 func is_done() -> bool:
@@ -116,6 +119,7 @@ func is_done() -> bool:
 
 
 func reset() -> void:
+	_step_dx = 0.0
 	_prev_x = _initial_torso.origin.x
 	torso.request_reset(_initial_torso, Vector2.ZERO, 0.0)
 	left_thigh.request_reset(_initial_left_thigh, Vector2.ZERO, 0.0)

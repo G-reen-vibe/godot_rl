@@ -60,8 +60,9 @@ func set_action(action: PackedFloat32Array) -> void:
         if action.is_empty():
                 return
         var v: float = clampf(action[0], -1.0, 1.0) * PADDLE_SPEED
-        # Paddle is a kinematic body (freeze_mode=KINEMATIC). We set its
-        # velocity and the body moves itself in _integrate_forces.
+        # Paddle is a high-mass kinematic body. We set its linear_velocity
+        # directly; the physics engine moves it. High mass prevents the
+        # ball from pushing the paddle around.
         paddle.set_kinematic_velocity(Vector2(0.0, v))
 
 
