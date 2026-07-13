@@ -22,16 +22,15 @@ func _ready() -> void:
 
 func set_academy(academy: RLAcademy) -> void:
 	_academy = academy
-	# Wait for academy to finish spawning envs
 	if not academy.is_spawned():
-		await academy.ready
+		await academy.spawned
 	_rebuild_grid()
 
 
 func _build_ui() -> void:
 	_grid = GridContainer.new()
 	_grid.columns = columns
-	_grid.set_anchors_preset(PRESET_FULL_RECT)
+	_grid.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_grid.offset_left = 8
 	_grid.offset_top = 8
 	_grid.offset_right = -8
@@ -41,7 +40,8 @@ func _build_ui() -> void:
 
 func _rebuild_grid() -> void:
 	for cell in _cells:
-		cell.queue_free()
+		if is_instance_valid(cell):
+			cell.queue_free()
 	_cells.clear()
 
 	if not _academy:
@@ -54,7 +54,7 @@ func _rebuild_grid() -> void:
 
 		var svc := SubViewportContainer.new()
 		svc.stretch = true
-		svc.set_anchors_preset(PRESET_FULL_RECT)
+		svc.set_anchors_preset(Control.PRESET_FULL_RECT)
 		cell.add_child(svc)
 
 		var lbl := Label.new()
