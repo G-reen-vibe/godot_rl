@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://cartpoleenv001"]
+[gd_scene load_steps=7 format=3 uid="uid://cartpoleenv001"]
 
 [ext_resource type="Script" path="res://rl/envs/cartpole/cartpole_env.gd" id="1_env"]
 [ext_resource type="Script" path="res://rl/envs/cartpole/cartpole_agent.gd" id="2_agent"]
+[ext_resource type="Script" path="res://rl/core/resettable_body_2d.gd" id="3_body"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(800, 20)
@@ -28,6 +29,7 @@ position = Vector2(0, 130)
 mass = 1.0
 gravity_scale = 1.0
 lock_rotation = true
+script = ExtResource("3_body")
 
 [node name="CartShape" type="CollisionShape2D" parent="Cart"]
 shape = SubResource("RectangleShape2D_cart")
@@ -36,6 +38,7 @@ shape = SubResource("RectangleShape2D_cart")
 position = Vector2(0, 60)
 mass = 0.1
 gravity_scale = 1.0
+script = ExtResource("3_body")
 
 [node name="PoleShape" type="CollisionShape2D" parent="Pole"]
 shape = SubResource("RectangleShape2D_pole")

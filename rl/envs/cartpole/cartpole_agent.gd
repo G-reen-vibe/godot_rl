@@ -1,15 +1,19 @@
 ## CartPole agent: owns the cart + pole bodies, exposes obs/action/reward.
 ##
 ## Observation (4):
-##   0  cart x       (m,    roughly [-2.4, 2.4])
-##   1  cart vx      (m/s)
-##   2  pole angle   (rad,  0 = upright)
-##   3  pole ang vel (rad/s)
+##   0  cart x       (normalized to [-1, 1] by X_LIMIT)
+##   1  cart vx      (normalized)
+##   2  pole angle   (normalized by ANGLE_LIMIT)
+##   3  pole ang vel (normalized)
 ##
 ## Action (1): force on cart in [-1, 1], scaled by FORCE_SCALE.
 ##
 ## Reward: +1 per step while upright.
-## Done: |angle| > 12 deg, or |x| > 2.4, or step cap reached.
+## Done: |angle| > 12 deg, or |x| > X_LIMIT.
+##
+## Note: is_done() and get_reward() compute from LIVE physics state
+## rather than a cached flag, to avoid one-frame lag between the
+## physics server stepping and the Academy reading the result.
 class_name CartPoleAgent
 extends RLAgent
 
@@ -23,19 +27,17 @@ const POLE_HALF_LEN_PX := 60.0
 @export var cart_path: NodePath = ^"../Cart"
 @export var pole_path: NodePath = ^"../Pole"
 
-var cart: RigidBody2D
-var pole: RigidBody2D
+var cart: RLResettableBody2D
+var pole: RLResettableBody2D
 
-var _step_reward: float = 0.0
-var _done: bool = false
 var _initial_cart_pos: Vector2
 var _initial_pole_pos: Vector2
 var _initial_pole_rot: float
 
 
 func _setup() -> void:
-	cart = get_node(cart_path) as RigidBody2D
-	pole = get_node(pole_path) as RigidBody2D
+	cart = get_node(cart_path) as RLResettableBody2D
+	pole = get_node(pole_path) as RLResettableBody2D
 	_initial_cart_pos = cart.position
 	_initial_pole_pos = pole.position
 	_initial_pole_rot = pole.rotation
@@ -58,33 +60,31 @@ func set_action(action: PackedFloat32Array) -> void:
 	cart.apply_central_force(Vector2(force, 0.0))
 
 
+func _is_upright() -> bool:
+	return abs(pole.rotation) < ANGLE_LIMIT and abs(cart.position.x) < X_LIMIT_PX
+
+
 func get_reward() -> float:
-	return _step_reward
+	return 1.0 if _is_upright() else 0.0
 
 
 func is_done() -> bool:
-	return _done
-
-
-func _physics_process(_delta: float) -> void:
-	var angle: float = pole.rotation
-	var x: float = cart.position.x
-	var upright: bool = abs(angle) < ANGLE_LIMIT and abs(x) < X_LIMIT_PX
-	_step_reward = 1.0 if upright else 0.0
-	_done = not upright
+	return not _is_upright()
 
 
 func reset() -> void:
-	_step_reward = 0.0
-	_done = false
-	cart.position = _initial_cart_pos + Vector2(randf_range(-5.0, 5.0), 0)
-	cart.linear_velocity = Vector2.ZERO
-	cart.angular_velocity = 0.0
-	cart.rotation = 0.0
-	pole.position = _initial_pole_pos
-	pole.rotation = _initial_pole_rot + randf_range(-0.05, 0.05)
-	pole.linear_velocity = Vector2.ZERO
-	pole.angular_velocity = 0.0
+	var cart_x_jitter: float = randf_range(-5.0, 5.0)
+	var pole_angle_jitter: float = randf_range(-0.05, 0.05)
+	cart.request_reset(
+		Transform2D(0.0, _initial_cart_pos + Vector2(cart_x_jitter, 0.0)),
+		Vector2.ZERO,
+		0.0
+	)
+	pole.request_reset(
+		Transform2D(_initial_pole_rot + pole_angle_jitter, _initial_pole_pos),
+		Vector2.ZERO,
+		0.0
+	)
 
 
 func get_action_dim() -> int:
