@@ -2,7 +2,7 @@
 ##
 ## Abstract base. Subclasses might be:
 ##   - RandomActionSource   (used now, for sanity-checking envs)
-##   - GAActionSource       (genetic algorithm — future)
+##   - GAActionSource       (genetic algorithm - future)
 ##   - ReplayActionSource   (load actions from disk for debugging)
 ##
 ## The Academy owns one ActionSource and queries it every decision

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://entrytest001"]
+
+[ext_resource type="Script" path="res://test/entry_test.gd" id="1_entry"]
+
+[node name="EntryTest" type="Node2D"]
+script = ExtResource("1_entry")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(0, 100)
+zoom = Vector2(1.5, 1.5)

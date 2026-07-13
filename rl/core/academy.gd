@@ -53,6 +53,7 @@ var _action_source: RLActionSource = null
 var _agents_per_env: int = 1
 var _action_dim: int = 1
 var _decision_step: int = 0
+var _spawned: bool = false
 
 
 func _ready() -> void:
@@ -67,12 +68,8 @@ func _spawn_envs() -> void:
 		push_error("RLAcademy: cannot spawn env '%s'" % env_name)
 		return
 	_agents_per_env = probe.get_agent_count()
-	# Probe action_dim by asking the first agent for an observation,
-	# then taking its size. (For these envs action_dim == obs_dim
-	# doesn't hold in general, so we use a static method if available.)
 	_action_dim = _infer_action_dim(probe)
 	probe.queue_free()
-	# free in next frame
 	await get_tree().process_frame
 
 	# Now spawn the real envs
@@ -86,7 +83,7 @@ func _spawn_envs() -> void:
 		vp.size = env_viewport_size
 		vp.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 		vp.disable_3d = true
-		vp.world_2d = World2D.new()  # CRITICAL: each env gets its own physics space
+		vp.world_2d = World2D.new()
 		vp.add_child(env)
 
 		add_child(vp)
@@ -97,16 +94,14 @@ func _spawn_envs() -> void:
 		stats.env_idx = i
 		_stats.append(stats)
 
-		# Initialize the env (reset to start first episode)
 		env.reset()
 
-	# Only render envs that the preview wants visible
 	_apply_render_visibility()
+	_spawned = true
 
 
 func _apply_render_visibility() -> void:
 	if preview_env_indices.is_empty():
-		# Render all if no filter set
 		for vp in _viewports:
 			vp.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 		return
@@ -121,7 +116,7 @@ func _apply_render_visibility() -> void:
 ## Subclasses (or the trainer) set this before _ready.
 func set_action_source(source: RLActionSource) -> void:
 	_action_source = source
-	if _action_source:
+	if _action_source and _agents_per_env > 0:
 		_action_source.setup(num_envs, _agents_per_env, _action_dim)
 
 
@@ -133,6 +128,8 @@ func get_stats() -> Array:
 
 
 func _physics_process(delta: float) -> void:
+	if not _spawned:
+		return
 	_decision_step += 1
 	if _decision_step % decision_period != 0:
 		return
@@ -142,7 +139,6 @@ func _physics_process(delta: float) -> void:
 	if _action_source:
 		actions = _action_source.get_actions(num_envs, _agents_per_env, _action_dim)
 	else:
-		# No source: zero actions
 		for i in range(num_envs):
 			var env_actions: Array[PackedFloat32Array] = []
 			for j in range(_agents_per_env):
@@ -172,11 +168,13 @@ func _physics_process(delta: float) -> void:
 			env.reset()
 			_stats[i].reset_for_new_episode()
 
-	step_completed.emit(_stats.map(func(s): return s.to_dict()))
+	var stat_dicts: Array = []
+	for s in _stats:
+		stat_dicts.append(s.to_dict())
+	step_completed.emit(stat_dicts)
 
 
-## Pull action_dim from an env instance. We use a static convention:
-## subclasses may declare `const ACTION_DIM`, or a method `get_action_dim()`.
+## Pull action_dim from an env instance.
 func _infer_action_dim(env: RLEnvironment) -> int:
 	if env.has_method("get_action_dim"):
 		return env.get_action_dim()
@@ -210,3 +208,7 @@ func get_viewport_for_env(idx: int) -> SubViewport:
 
 func get_num_envs() -> int:
 	return _envs.size()
+
+
+func is_spawned() -> bool:
+	return _spawned
