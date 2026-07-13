@@ -30,6 +30,10 @@ position = Vector2(0, 121)
 [node name="GroundShape" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("RectangleShape2D_ground")
 
+[node name="GroundVisual" type="Polygon2D" parent="Ground"]
+color = Color(0.35, 0.4, 0.3, 1)
+polygon = PackedVector2Array(-500, -10, 500, -10, 500, 10, -500, 10)
+
 [node name="Torso" type="RigidBody2D" parent="."]
 position = Vector2(0, 30)
 mass = 5.0
@@ -40,6 +44,10 @@ kinematic = false
 [node name="TorsoShape" type="CollisionShape2D" parent="Torso"]
 shape = SubResource("RectangleShape2D_torso")
 
+[node name="TorsoVisual" type="Polygon2D" parent="Torso"]
+color = Color(0.6, 0.5, 0.9, 1)
+polygon = PackedVector2Array(-15, -15, 15, -15, 15, 15, -15, 15)
+
 [node name="LeftThigh" type="RigidBody2D" parent="."]
 position = Vector2(-8, 60)
 mass = 1.0
@@ -49,6 +57,10 @@ kinematic = false
 
 [node name="LeftThighShape" type="CollisionShape2D" parent="LeftThigh"]
 shape = SubResource("RectangleShape2D_thigh")
+
+[node name="LeftThighVisual" type="Polygon2D" parent="LeftThigh"]
+color = Color(0.5, 0.7, 0.9, 1)
+polygon = PackedVector2Array(-4, -15, 4, -15, 4, 15, -4, 15)
 
 [node name="LeftHipJoint" type="PinJoint2D" parent="."]
 position = Vector2(-8, 45)
@@ -66,6 +78,10 @@ kinematic = false
 [node name="LeftShinShape" type="CollisionShape2D" parent="LeftShin"]
 shape = SubResource("RectangleShape2D_shin")
 
+[node name="LeftShinVisual" type="Polygon2D" parent="LeftShin"]
+color = Color(0.4, 0.6, 0.8, 1)
+polygon = PackedVector2Array(-4, -15, 4, -15, 4, 15, -4, 15)
+
 [node name="LeftKneeJoint" type="PinJoint2D" parent="."]
 position = Vector2(-8, 75)
 node_a = NodePath("../LeftThigh")
@@ -81,6 +97,10 @@ kinematic = false
 
 [node name="LeftFootShape" type="CollisionShape2D" parent="LeftFoot"]
 shape = SubResource("RectangleShape2D_foot")
+
+[node name="LeftFootVisual" type="Polygon2D" parent="LeftFoot"]
+color = Color(0.3, 0.5, 0.7, 1)
+polygon = PackedVector2Array(-10, -3, 10, -3, 10, 3, -10, 3)
 
 [node name="LeftAnkleJoint" type="PinJoint2D" parent="."]
 position = Vector2(-8, 105)
@@ -98,6 +118,10 @@ kinematic = false
 [node name="RightThighShape" type="CollisionShape2D" parent="RightThigh"]
 shape = SubResource("RectangleShape2D_thigh")
 
+[node name="RightThighVisual" type="Polygon2D" parent="RightThigh"]
+color = Color(0.9, 0.5, 0.7, 1)
+polygon = PackedVector2Array(-4, -15, 4, -15, 4, 15, -4, 15)
+
 [node name="RightHipJoint" type="PinJoint2D" parent="."]
 position = Vector2(8, 45)
 node_a = NodePath("../Torso")
@@ -114,6 +138,10 @@ kinematic = false
 [node name="RightShinShape" type="CollisionShape2D" parent="RightShin"]
 shape = SubResource("RectangleShape2D_shin")
 
+[node name="RightShinVisual" type="Polygon2D" parent="RightShin"]
+color = Color(0.8, 0.4, 0.6, 1)
+polygon = PackedVector2Array(-4, -15, 4, -15, 4, 15, -4, 15)
+
 [node name="RightKneeJoint" type="PinJoint2D" parent="."]
 position = Vector2(8, 75)
 node_a = NodePath("../RightThigh")
@@ -129,6 +157,10 @@ kinematic = false
 
 [node name="RightFootShape" type="CollisionShape2D" parent="RightFoot"]
 shape = SubResource("RectangleShape2D_foot")
+
+[node name="RightFootVisual" type="Polygon2D" parent="RightFoot"]
+color = Color(0.7, 0.3, 0.5, 1)
+polygon = PackedVector2Array(-10, -3, 10, -3, 10, 3, -10, 3)
 
 [node name="RightAnkleJoint" type="PinJoint2D" parent="."]
 position = Vector2(8, 105)
