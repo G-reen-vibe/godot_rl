@@ -22,7 +22,7 @@ const OBS_DIM := 8
 const ACTION_DIM := 4
 const TORQUE_SCALE := 400.0
 const FALL_Y := 100.0
-const GROUND_Y := 110.0
+const GROUND_Y := 111.0
 
 @export var torso_path: NodePath = ^"../Torso"
 @export var left_thigh_path: NodePath = ^"../LeftThigh"
@@ -48,91 +48,97 @@ var _initial_right_shin: Transform2D
 var _initial_left_foot: Transform2D
 var _initial_right_foot: Transform2D
 
-# Reward tracking: _step_dx is computed when set_action is called
-# (once per step), so get_reward() is a pure read with no side effects.
-var _step_dx: float = 0.0
+# B4 fix: reward is computed in _physics_process (after Godot steps
+# physics), so get_reward() is a pure read of _cached_reward.
+# _prev_x is updated here too, so dx reflects THIS step's movement.
+var _cached_reward: float = 0.0
 var _prev_x: float = 0.0
 
 
 func _setup() -> void:
-	torso = get_node(torso_path) as RLResettableBody2D
-	left_thigh = get_node(left_thigh_path) as RLResettableBody2D
-	left_shin = get_node(left_shin_path) as RLResettableBody2D
-	right_thigh = get_node(right_thigh_path) as RLResettableBody2D
-	right_shin = get_node(right_shin_path) as RLResettableBody2D
-	left_foot = get_node(left_foot_path) as RLResettableBody2D
-	right_foot = get_node(right_foot_path) as RLResettableBody2D
-	_initial_torso = torso.transform
-	_initial_left_thigh = left_thigh.transform
-	_initial_left_shin = left_shin.transform
-	_initial_right_thigh = right_thigh.transform
-	_initial_right_shin = right_shin.transform
-	_initial_left_foot = left_foot.transform
-	_initial_right_foot = right_foot.transform
-	_prev_x = torso.position.x
+        torso = get_node(torso_path) as RLResettableBody2D
+        left_thigh = get_node(left_thigh_path) as RLResettableBody2D
+        left_shin = get_node(left_shin_path) as RLResettableBody2D
+        right_thigh = get_node(right_thigh_path) as RLResettableBody2D
+        right_shin = get_node(right_shin_path) as RLResettableBody2D
+        left_foot = get_node(left_foot_path) as RLResettableBody2D
+        right_foot = get_node(right_foot_path) as RLResettableBody2D
+        _initial_torso = torso.transform
+        _initial_left_thigh = left_thigh.transform
+        _initial_left_shin = left_shin.transform
+        _initial_right_thigh = right_thigh.transform
+        _initial_right_shin = right_shin.transform
+        _initial_left_foot = left_foot.transform
+        _initial_right_foot = right_foot.transform
+        _prev_x = torso.position.x
 
 
 func get_observation() -> PackedFloat32Array:
-	var obs := PackedFloat32Array()
-	obs.resize(OBS_DIM)
-	obs[0] = clampf(left_thigh.rotation / PI, -1.0, 1.0)
-	obs[1] = clampf(left_shin.rotation / PI, -1.0, 1.0)
-	obs[2] = clampf(right_thigh.rotation / PI, -1.0, 1.0)
-	obs[3] = clampf(right_shin.rotation / PI, -1.0, 1.0)
-	obs[4] = clampf(torso.rotation / PI, -1.0, 1.0)
-	obs[5] = clampf(torso.linear_velocity.x / 100.0, -1.0, 1.0)
-	obs[6] = clampf(torso.linear_velocity.y / 100.0, -1.0, 1.0)
-	obs[7] = 1.0 if _has_ground_contact() else 0.0
-	return obs
+        var obs := PackedFloat32Array()
+        obs.resize(OBS_DIM)
+        obs[0] = clampf(left_thigh.rotation / PI, -1.0, 1.0)
+        obs[1] = clampf(left_shin.rotation / PI, -1.0, 1.0)
+        obs[2] = clampf(right_thigh.rotation / PI, -1.0, 1.0)
+        obs[3] = clampf(right_shin.rotation / PI, -1.0, 1.0)
+        obs[4] = clampf(torso.rotation / PI, -1.0, 1.0)
+        obs[5] = clampf(torso.linear_velocity.x / 100.0, -1.0, 1.0)
+        obs[6] = clampf(torso.linear_velocity.y / 100.0, -1.0, 1.0)
+        obs[7] = 1.0 if _has_ground_contact() else 0.0
+        return obs
 
 
 func set_action(action: PackedFloat32Array) -> void:
-	if action.is_empty() or action.size() < 4:
-		return
-	# Compute step dx NOW (before forces are applied), so get_reward
-	# can be a pure read. This is called once per step by the Academy.
-	_step_dx = torso.position.x - _prev_x
-	_prev_x = torso.position.x
+        if action.is_empty() or action.size() < 4:
+                return
+        left_thigh.apply_torque(clampf(action[0], -1.0, 1.0) * TORQUE_SCALE)
+        left_shin.apply_torque(clampf(action[1], -1.0, 1.0) * TORQUE_SCALE)
+        right_thigh.apply_torque(clampf(action[2], -1.0, 1.0) * TORQUE_SCALE)
+        right_shin.apply_torque(clampf(action[3], -1.0, 1.0) * TORQUE_SCALE)
 
-	left_thigh.apply_torque(clampf(action[0], -1.0, 1.0) * TORQUE_SCALE)
-	left_shin.apply_torque(clampf(action[1], -1.0, 1.0) * TORQUE_SCALE)
-	right_thigh.apply_torque(clampf(action[2], -1.0, 1.0) * TORQUE_SCALE)
-	right_shin.apply_torque(clampf(action[3], -1.0, 1.0) * TORQUE_SCALE)
+
+# B4 fix: compute reward AFTER physics has stepped (Godot calls
+# _physics_process after integrating forces). This way _cached_reward
+# reflects the actual movement caused by this step's action.
+func _physics_process(_delta: float) -> void:
+        if _is_fallen():
+                _cached_reward = -5.0
+        else:
+                var dx: float = torso.position.x - _prev_x
+                _cached_reward = dx * 0.1 + 0.1
+        _prev_x = torso.position.x
 
 
 func _has_ground_contact() -> bool:
-	return left_foot.position.y > GROUND_Y - 15.0 or right_foot.position.y > GROUND_Y - 15.0
+        return left_foot.position.y > GROUND_Y - 15.0 or right_foot.position.y > GROUND_Y - 15.0
 
 
 func _is_fallen() -> bool:
-	return torso.position.y > FALL_Y or abs(torso.rotation) > deg_to_rad(60.0)
+        return torso.position.y > FALL_Y or abs(torso.rotation) > deg_to_rad(60.0)
 
 
 func get_reward() -> float:
-	if _is_fallen():
-		return -5.0
-	return _step_dx * 0.1 + 0.1
+        return _cached_reward
 
 
 func is_done() -> bool:
-	return _is_fallen()
+        return _is_fallen()
 
 
 func reset() -> void:
-	_step_dx = 0.0
-	_prev_x = _initial_torso.origin.x
-	torso.request_reset(_initial_torso, Vector2.ZERO, 0.0)
-	left_thigh.request_reset(_initial_left_thigh, Vector2.ZERO, 0.0)
-	left_shin.request_reset(_initial_left_shin, Vector2.ZERO, 0.0)
-	right_thigh.request_reset(_initial_right_thigh, Vector2.ZERO, 0.0)
-	right_shin.request_reset(_initial_right_shin, Vector2.ZERO, 0.0)
-	left_foot.request_reset(_initial_left_foot, Vector2.ZERO, 0.0)
-	right_foot.request_reset(_initial_right_foot, Vector2.ZERO, 0.0)
+        _cached_reward = 0.0
+        _prev_x = _initial_torso.origin.x
+        torso.request_reset(_initial_torso, Vector2.ZERO, 0.0)
+        left_thigh.request_reset(_initial_left_thigh, Vector2.ZERO, 0.0)
+        left_shin.request_reset(_initial_left_shin, Vector2.ZERO, 0.0)
+        right_thigh.request_reset(_initial_right_thigh, Vector2.ZERO, 0.0)
+        right_shin.request_reset(_initial_right_shin, Vector2.ZERO, 0.0)
+        left_foot.request_reset(_initial_left_foot, Vector2.ZERO, 0.0)
+        right_foot.request_reset(_initial_right_foot, Vector2.ZERO, 0.0)
 
 
 func get_action_dim() -> int:
-	return ACTION_DIM
+        return ACTION_DIM
 
 
 func get_obs_dim() -> int:
-	return OBS_DIM
+        return OBS_DIM

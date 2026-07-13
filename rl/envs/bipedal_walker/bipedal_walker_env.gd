@@ -13,7 +13,8 @@
 ##
 ## Coordinate convention:
 ##   Origin at center. +x right, +y down.
-##   Ground at y=130. Torso starts at y=0 (60 above ground).
+##   Ground top at y=111. Torso starts at y=30.
+##   Feet start at y=108 (bottom at y=111 = ground top).
 class_name BipedalWalkerEnv
 extends RLEnvironment
 
@@ -22,18 +23,18 @@ const ACTION_DIM := 4
 
 
 func _ready() -> void:
-	env_name = "bipedal_walker"
-	super._ready()
+        env_name = "bipedal_walker"
+        super._ready()
 
 
 func _setup() -> void:
-	var agent := get_node("BipedalWalkerAgent") as BipedalWalkerAgent
-	agent._setup()
+        var agent := get_node("BipedalWalkerAgent") as BipedalWalkerAgent
+        agent._setup()
 
 
 func get_action_dim() -> int:
-	return ACTION_DIM
+        return ACTION_DIM
 
 
 func get_obs_dim() -> int:
-	return OBS_DIM
+        return OBS_DIM

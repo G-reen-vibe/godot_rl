@@ -13,7 +13,9 @@ class_name RLPreviewGrid
 
 var _academy: RLAcademy
 var _grid: GridContainer
-var _cells: Array = []
+# B3 fix: store cell Control nodes directly so we can free them
+var _cell_nodes: Array[Control] = []
+var _cell_data: Array = []
 
 
 func _ready() -> void:
@@ -39,10 +41,12 @@ func _build_ui() -> void:
 
 
 func _rebuild_grid() -> void:
-	for cell in _cells:
-		if is_instance_valid(cell):
-			cell.queue_free()
-	_cells.clear()
+	# B3 fix: free cell nodes properly (is_instance_valid on Nodes, not Dictionaries)
+	for cell_node in _cell_nodes:
+		if is_instance_valid(cell_node):
+			cell_node.queue_free()
+	_cell_nodes.clear()
+	_cell_data.clear()
 
 	if not _academy:
 		return
@@ -68,7 +72,8 @@ func _rebuild_grid() -> void:
 		cell.add_child(lbl)
 
 		_grid.add_child(cell)
-		_cells.append({"cell": cell, "svc": svc, "label": lbl, "env_idx": i})
+		_cell_nodes.append(cell)
+		_cell_data.append({"cell": cell, "svc": svc, "label": lbl, "env_idx": i})
 
 		# Re-parent the env's viewport from the Academy into this cell
 		var vp := _academy.get_viewport_for_env(i)
@@ -84,7 +89,7 @@ func _rebuild_grid() -> void:
 func _on_step(stats: Array) -> void:
 	if not show_stats:
 		return
-	for entry in _cells:
+	for entry in _cell_data:
 		var idx: int = entry["env_idx"]
 		if idx >= 0 and idx < stats.size():
 			var s: Dictionary = stats[idx]

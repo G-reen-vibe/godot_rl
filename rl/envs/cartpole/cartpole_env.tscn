@@ -35,7 +35,7 @@ script = ExtResource("3_body")
 shape = SubResource("RectangleShape2D_cart")
 
 [node name="Pole" type="RigidBody2D" parent="."]
-position = Vector2(0, 60)
+position = Vector2(0, 54)
 mass = 0.1
 gravity_scale = 1.0
 script = ExtResource("3_body")
