@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://e2etest001"]
+
+[ext_resource type="Script" path="res://test/e2e_test.gd" id="1_test"]
+
+[node name="E2ETest" type="Node2D"]
+script = ExtResource("1_test")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
